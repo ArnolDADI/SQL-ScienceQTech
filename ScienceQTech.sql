@@ -137,7 +137,7 @@ Note: The standard being:
 
 
 -- Dropping Database
-DROP DATABASE IF EXISTS employee;
+-- DROP DATABASE IF EXISTS employee;
 
 -- 1. Create a database named employee, then import data_science_team.csv proj_table.csv and emp_record_table.csv into the employee database from the given resources.
 
@@ -147,29 +147,6 @@ CREATE DATABASE IF NOT EXISTS employee;
 USE employee;
 
 -- CREATE TABLES
--- proj_table
-CREATE TABLE IF NOT EXISTS proj_table(
-    PROJ_ID VARCHAR(6) PRIMARY KEY,
-    PROJ_Name VARCHAR(40) NOT NULL,
-    DOMAIN VARCHAR(30) NOT NULL,
-    START_DATE DATE NOT NULL,
-    CLOSURE_DATE DATE NOT NULL,
-    DEV_QTR VARCHAR(2) NOT NULL,
-    STATUS VARCHAR(20) NOT NULL
-);
-
--- Data_science_team
-CREATE TABLE IF NOT EXISTS data_science_team(
-    EMP_ID VARCHAR(6) NOT NULL PRIMARY KEY,
-    FIRST_NAME VARCHAR(30) NOT NULL,
-    LAST_NAME VARCHAR(30) NOT NULL,
-    GENDER VARCHAR(4) NOT NULL,
-    ROLE VARCHAR(40) NOT NULL,
-    DEPT VARCHAR(20) NOT NULL,
-    EXP INT NOT NULL,
-    COUNTRY VARCHAR(20) NOT NULL,
-    CONTINENT VARCHAR(20) NOT NULL
-);
 
 -- emp_record_table
 CREATE TABLE IF NOT EXISTS emp_record_table(
@@ -185,10 +162,33 @@ CREATE TABLE IF NOT EXISTS emp_record_table(
     SALARY INT NOT NULL,
     EMP_RATING INT NOT NULL,
     MANAGER_ID VARCHAR(6) ,
-    PROJ_ID VARCHAR(6),
-	FOREIGN KEY (EMP_ID) REFERENCES data_science_team(EMP_ID),
-	FOREIGN KEY (PROJ_ID) REFERENCES proj_table(PROJ_ID)
+    PROJ_ID VARCHAR(6)
 );
+-- proj_table
+CREATE TABLE IF NOT EXISTS proj_table(
+    PROJ_ID VARCHAR(6),
+    PROJ_Name VARCHAR(40) NOT NULL,
+    DOMAIN VARCHAR(30) NOT NULL,
+    START_DATE VARCHAR(20) NOT NULL,
+    CLOSURE_DATE VARCHAR(20) NOT NULL,
+    DEV_QTR VARCHAR(2) NOT NULL,
+    STATUS VARCHAR(20) NOT NULL
+);
+
+-- Data_science_team
+CREATE TABLE IF NOT EXISTS data_science_team(
+    EMP_ID VARCHAR(6) NOT NULL,
+    FIRST_NAME VARCHAR(30) NOT NULL,
+    LAST_NAME VARCHAR(30) NOT NULL,
+    GENDER VARCHAR(4) NOT NULL,
+    ROLE VARCHAR(40) NOT NULL,
+    DEPT VARCHAR(20) NOT NULL,
+    EXP INT NOT NULL,
+    COUNTRY VARCHAR(20) NOT NULL,
+    CONTINENT VARCHAR(20) NOT NULL
+);
+
+
 
 -- LOAD DATA
 -- proj_table
@@ -213,7 +213,7 @@ LINES TERMINATED BY '\n'
 IGNORE 1 ROWS;
 
 -- Uncomment next line if the file loads automatically else load CSV files manually
-/*
+
 -- 2. Create an ER diagram for the given employee database.
 -- ER Diagram
 
@@ -225,7 +225,8 @@ SELECT
     emp_record_table.GENDER,
     emp_record_table.DEPT
 FROM
-    emp_record_table;
+    emp_record_table
+ORDER BY emp_record_table.DEPT;
 
 -- 4. Write a query to fetch EMP_ID, FIRST_NAME, LAST_NAME, GENDER, DEPARTMENT, and EMP_RATING if the EMP_RATING is: 
 
@@ -279,9 +280,13 @@ SELECT
             ' ',
             emp_record_table.LAST_NAME) AS NAME
 FROM
-    emp_record_table;
+    emp_record_table
+WHERE
+	emp_record_table.DEPT ='FINANCE';
 
 -- 6. Write a query to list only those employees who have someone reporting to them. Also, show the number of reporters (including the President).
+-- Due to the SQL MODE 
+SET @@sql_mode = SYS.LIST_DROP(@@sql_mode, 'ONLY_FULL_GROUP_BY');
 SELECT 
     emp_record_table.FIRST_NAME,
     emp_record_table.LAST_NAME,
@@ -307,7 +312,7 @@ WHERE
     ORDER BY EMP_ID;
 
 -- 8. Write a query to list down employee details such as EMP_ID, FIRST_NAME, LAST_NAME, ROLE, DEPARTMENT, and EMP_RATING grouped by dept. Also include the respective employee rating along with the max emp rating for the department.
-SELECT
+SELECT *,
     MAX(emp_record_table.EMP_RATING)
 FROM
     emp_record_table
@@ -329,12 +334,12 @@ SELECT
     emp_record_table.EMP_ID, 
     concat(emp_record_table.FIRST_NAME,
             ' ',
-            emp_record_table.LAST_NAME) as NAME IF NOT EXISTS,
+            emp_record_table.LAST_NAME) as NAME,
     emp_record_table.DEPT,
     emp_record_table.EXP,
     rank() OVER(ORDER BY emp_record_table.EXP DESC) as EMP_EXP_RANK
 FROM
-    emp_record_table
+    emp_record_table;
 
 -- 11. Write a query to create a view that displays employees in various countries whose salary is more than six thousand. Take data from the employee record table.
 CREATE VIEW 
@@ -350,6 +355,9 @@ FROM
 WHERE
     emp_record_table.SALARY > 6000
     ORDER BY emp_record_table.SALARY;
+
+
+
 
 -- 12. Write a nested query to find employees with experience of more than ten years. Take data from the employee record table.
 SELECT
@@ -404,19 +412,17 @@ END //
 delimiter ;
 -- checking Data Science Team
 SELECT
-    emp_record_table.EMP_ID,
-    emp_record_table. FIRST_NAME,
-    emp_record_table.LAST_NAME, 
-    emp_record_table.ROLE, 
-    emp_record_table.EXP,
+    EMP_ID,
+    FIRST_NAME,
+    LAST_NAME, 
+    ROLE, 
+    EXP,
     check_role(exp)
 FROM 
     data_science_team 
 WHERE data_science_team.ROLE != check_role(exp);
 
 -- 15. Create an index to improve the cost and performance of the query to find the employee whose FIRST_NAME is ‘Eric’ in the employee table after checking the execution plan.
-CREATE INDEX 
-    emp_first_name_index ON emp_record_table(FIRST_NAME);
 SELECT *
 FROM
     emp_record_table
@@ -425,15 +431,15 @@ WHERE
 
 -- 16. Write a query to calculate the bonus for all the employees, based on their ratings and salaries (Use the formula: 5% of salary * employee rating).
 SELECT
-    emp_salary_view.EMP_ID,
-    emp_salary_view.NAME,
-    emp_salary_view.DEPT,
-    emp_salary_view.SALARY,
-    emp_salary_view.EMP_RATING,
-    (emp_salary_view.SALARY * 0.05 * emp_salary_view.EMP_RATING) AS BONUS
+    emp_record_table.EMP_ID,
+    emp_record_table.FIRST_NAME,
+    emp_record_table.DEPT,
+    emp_record_table.SALARY,
+    emp_record_table.EMP_RATING,
+    (emp_record_table.SALARY * 0.05 * emp_record_table.EMP_RATING) AS BONUS
 FROM
-    emp_salary_view
-ORDER BY emp_salary_view.BONUS DESC;
+    emp_record_table
+ORDER BY EMP_ID DESC;
 
 -- 17. Write a query to calculate the average salary distribution based on the continent and country. Take data from the employee record table.
 SELECT
